@@ -1,16 +1,10 @@
-import { app } from "./app.js";
-import { initMongoConnection } from "./db/initMongoConnection.js";
-import { initContacts } from "./db/initContacts.js";
+import { ContactsCollection } from "../db/models/contacts.js";
 
-const PORT = process.env.PORT || 3000;
+export const getAllContacts = async () => ContactsCollection.find();
 
-const startServer = async () => {
-  await initMongoConnection();
-  await initContacts();
+export const getContactById = async (id) => ContactsCollection.findById(id);
 
-  app.listen(PORT, () => {
-    console.log(`🚀 Server running. Use our API on port: ${PORT}`);
-  });
+export const createContact = async (data) => {
+  const contact = new ContactsCollection(data);
+  return contact.save();
 };
-
-startServer();
