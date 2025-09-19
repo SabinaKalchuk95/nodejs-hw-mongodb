@@ -4,6 +4,7 @@ import contactsRouter from "./routes/contactsRouter.js";
 import { initMongoConnection } from "./db/initMongoConnection.js";
 import { initContacts } from "./db/initContacts.js";
 
+
 dotenv.config();
 
 const app = express();
