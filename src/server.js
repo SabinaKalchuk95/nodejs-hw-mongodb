@@ -4,23 +4,26 @@ import pino from 'pino-http';
 import contactsRouter from './routes/contactsRouter.js';
 
 export const setupServer = () => {
-    const app = express();
-    const logger = pino();
+  const app = express();
+  const logger = pino();
 
-    app.use(cors());
-    app.use(logger);
-    app.use(express.json());
+  app.use(express.json());
+  app.use(cors());
+  app.use(logger);
 
-    app.use('/contacts', contactsRouter);
+  app.use('/contacts', contactsRouter);
 
-    // 404 handler з логуванням
-    app.use((req, res) => {
-        logger.logger.warn(`404 Not Found: ${req.method} ${req.url}`);
-        res.status(404).json({ message: 'Not found' });
-    });
+  app.use((req, res) => {
+    res.status(404).json({ message: 'Not found' });
+  });
 
-    const PORT = process.env.PORT || 3000;
-    app.listen(PORT, () => {
-        console.log(`Server is running on port ${PORT}`);
-    });
+  app.use((err, req, res, next) => {
+    res.status(500).json({ message: err.message });
+  });
+
+  const PORT = process.env.PORT || 3000;
+
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
 };

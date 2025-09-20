@@ -1,25 +1,19 @@
-import express from "express";
-import dotenv from "dotenv";
-import contactsRouter from "./routes/contactsRouter.js";
+import { setupServer } from "./server.js";
 import { initMongoConnection } from "./db/initMongoConnection.js";
 import { initContacts } from "./db/initContacts.js";
-
+import dotenv from 'dotenv';
 
 dotenv.config();
 
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-app.use(express.json());
-app.use("/api/contacts", contactsRouter);
-
 const startServer = async () => {
-  await initMongoConnection();
-  await initContacts();
-
-  app.listen(PORT, () => {
-    console.log(`🚀 Server running on port: ${PORT}`);
-  });
+    try {
+        await initMongoConnection();
+        await initContacts();
+        setupServer();
+    } catch (error) {
+        console.error('Failed to start server:', error);
+        process.exit(1);
+    }
 };
 
 startServer();
