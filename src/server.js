@@ -1,4 +1,4 @@
-// src/server.js
+
 
 import express from 'express';
 import cors from 'cors';
@@ -15,7 +15,8 @@ export const setupServer = () => {
   app.use(cors());
   app.use(logger);
 
-  app.use('/contacts', contactsRouter);
+ 
+  app.use('/api/contacts', contactsRouter); 
 
   app.use(notFoundHandler);
 
