@@ -1,19 +1,45 @@
-import { setupServer } from "./server.js";
-import { initMongoConnection } from "./db/initMongoConnection.js";
-import { initContacts } from "./db/initContacts.js";
-import dotenv from 'dotenv';
+import express from 'express';
+import pino from 'pino-http';
+import cors from 'cors';
 
-dotenv.config();
+import { getEnv } from './utils/env.js'; 
 
-const startServer = async () => {
-    try {
-        await initMongoConnection();
-        await initContacts();
-        setupServer();
-    } catch (error) {
-        console.error('Failed to start server:', error);
-        process.exit(1);
-    }
+import notFoundHandler from './middlewares/notFoundHandler.js'; 
+import { errorHandler } from './middlewares/errorHandler.js'; 
+
+import { initMongoConnection } from './db/initMongoConnection.js';
+
+import authRouter from './routes/auth.js';
+import contactsRouter from './routes/contacts.js';
+
+const PORT = Number(getEnv('PORT', '3000')); 
+
+export const setupServer = () => {
+  const app = express();
+
+  initMongoConnection(); 
+
+  app.use(cors());
+  app.use(express.json()); 
+  
+  app.use(
+    pino({
+      transport: {
+        target: 'pino-pretty',
+      },
+    }),
+  );
+
+  app.use('/api/auth', authRouter);
+  app.use('/api/contacts', contactsRouter);
+
+  app.use('*', notFoundHandler);
+
+  app.use(errorHandler);
+
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
 };
 
-startServer();
+setupServer();
