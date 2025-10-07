@@ -5,10 +5,14 @@ export const initMongoConnection = async () => {
   try {
     const user = getEnv('MONGODB_USER');
     const password = getEnv('MONGODB_PASSWORD');
-    const host = getEnv('MONGODB_HOST');
-    const dbName = getEnv('MONGODB_DB_NAME');
+    const host = getEnv('MONGODB_HOST'); 
+    const dbName = getEnv('MONGODB_DB_NAME'); 
     const appName = getEnv('MONGODB_APP_NAME');
 
+    if (!user || !password || !host || !dbName || !appName) {
+      console.error('Error: One or more required MongoDB environment variables are missing.');
+      process.exit(1);
+    }
     
     const uri = `mongodb+srv://${user}:${password}@${host}/${dbName}?retryWrites=true&w=majority&appName=${appName}`;
 
