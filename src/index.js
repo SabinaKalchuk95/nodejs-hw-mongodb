@@ -1,27 +1,21 @@
 import express from 'express';
 import pino from 'pino-http';
 import cors from 'cors';
-
-import { getEnv } from './utils/env.js'; 
-
-import notFoundHandler from './middlewares/notFoundHandler.js'; 
-import { errorHandler } from './middlewares/errorHandler.js'; 
-
+import { env } from './utils/env.js';
 import { initMongoConnection } from './db/initMongoConnection.js';
-
-import authRouter from './routes/auth.js';
+import { errorHandler } from './middlewares/errorHandler.js';
+import { notFoundHandler } from './middlewares/notFoundHandler.js';
 import contactsRouter from './routes/contacts.js';
+import authRouter from './routes/auth.js';
 
-const PORT = Number(getEnv('PORT', '3000')); 
+const PORT = env('PORT', '3000');
 
 export const setupServer = () => {
   const app = express();
 
-  initMongoConnection(); 
-
+  app.use(express.json());
   app.use(cors());
-  app.use(express.json()); 
-  
+
   app.use(
     pino({
       transport: {
@@ -30,11 +24,13 @@ export const setupServer = () => {
     }),
   );
 
-  app.use('/api/auth', authRouter);
-  app.use('/api/contacts', contactsRouter);
+  
+  app.use(authRouter); 
+  
+ 
+  app.use(contactsRouter); 
 
   app.use('*', notFoundHandler);
-
   app.use(errorHandler);
 
   app.listen(PORT, () => {
@@ -42,4 +38,7 @@ export const setupServer = () => {
   });
 };
 
-setupServer();
+(async () => {
+  await initMongoConnection();
+  setupServer();
+})();
