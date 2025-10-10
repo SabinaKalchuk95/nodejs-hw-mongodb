@@ -1,3 +1,4 @@
+// src/middlewares/authenticate.js
 import createHttpError from 'http-errors';
 import jwt from 'jsonwebtoken';
 import { getEnv } from '../utils/env.js';
@@ -8,7 +9,6 @@ const authenticate = async (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader) {
-    
     return next(createHttpError(401, 'Authorization header is missing.'));
   }
 
@@ -20,35 +20,36 @@ const authenticate = async (req, res, next) => {
 
   let payload;
   try {
+    // Верифікація токена з використанням JWT_SECRET
     payload = jwt.verify(token, getEnv('JWT_SECRET'));
   } catch (err) {
+    // Помилка, якщо токен невалідний або прострочений
     return next(createHttpError(401, 'Invalid token.'));
   }
 
-  const userId = payload.userId;
+  const userId = payload.userId; // Вважаємо, що в пейлоаді є 'userId'
 
-  if (!userId) {
-    return next(createHttpError(401, 'Invalid token payload.'));
-  }
-
+  // Пошук сесії, що відповідає цьому користувачу ТА токену
   const session = await SessionsCollection.findOne({
     userId: userId,
     accessToken: token, 
   });
-  
-  if (!session) {
-    return next(createHttpError(401, 'Session not found.'));
-  }
 
+  if (!session) {
+    return next(createHttpError(401, 'Session not found or expired.'));
+  }
+  
+  // Знаходимо користувача
   const user = await UsersCollection.findById(userId);
 
   if (!user) {
     return next(createHttpError(401, 'User not found.'));
   }
 
+  // Додаємо дані до req для подальшого використання
   req.user = user;
   req.session = session;
-
+  
   next();
 };
 
