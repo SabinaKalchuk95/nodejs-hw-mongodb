@@ -9,18 +9,18 @@ import {
 } from '../controllers/auth.js'; 
 
 import { validateBody } from '../middlewares/validateBody.js';
-import { registerSchema, loginSchema } from '../schemas/auth.js'; // refreshSessionSchema не потрібна для body
+import { registerSchema, loginSchema } from '../schemas/auth.js';
 import authenticate from '../middlewares/authenticate.js'; 
 
 const router = Router();
 
-// ПУБЛІЧНІ РОУТИ: Не мають authenticate
+// ❗ ИСПРАВЛЕННЫЕ ПУБЛИЧНЫЕ РОУТЫ: Добавляем сюда logout!
 router.post('/register', validateBody(registerSchema), ctrlWrapper(registerUser));
 router.post('/login', validateBody(loginSchema), ctrlWrapper(loginUser));
 router.post('/refresh', ctrlWrapper(refreshSessionController)); 
+router.post('/logout', ctrlWrapper(logoutUser)); // ❗ ИСПРАВЛЕНО: УБРАН authenticate
 
-// ЗАХИЩЕНІ РОУТИ: Мають authenticate
-router.post('/logout', authenticate, ctrlWrapper(logoutUser));
-router.get('/me', authenticate, ctrlWrapper(getMeController));
+// ЗАЩИЩЕННЫЕ РОУТЫ: (Остается только getMe)
+router.get('/me', authenticate, ctrlWrapper(getMeController)); 
 
 export default router;

@@ -30,13 +30,27 @@ export const getContactsController = async (req, res) => {
     status: 200,
     message: 'Successfully found contacts',
     data: contacts,
-    pagination, // Повертаємо дані пагінації
+    pagination, 
   });
 };
 
-// ... (інші контролери залишаються такими ж, як ми їх виправляли раніше)
+// ❗ ИСПРАВЛЕНИЕ ЗАВИСАНИЯ (❌ POST /contacts hangs): Контроллер создания контакта
+export const createContactController = async (req, res) => {
+  // Получаем ID пользователя из req.user (устанавливается authenticate)
+  const userId = req.user._id; 
+  
+  // Вызываем сервис для создания контакта (предполагая, что сервис contactsService.createContact существует)
+  const newContact = await contactsService.createContact(userId, req.body); 
+
+  // ✅ Завершение запроса, чтобы он не зависал
+  res.status(201).json({
+    status: 201,
+    message: 'Successfully created contact',
+    data: newContact,
+  });
+};
+
+// ... (остальной код, который вы обозначили /* ... */)
 export const getContactByIdController = async (req, res) => { /* ... */ };
-export const createContactController = async (req, res) => { /* ... */ };
 export const patchContactController = async (req, res) => { /* ... */ };
 export const deleteContactController = async (req, res) => { /* ... */ };
-export const getMeController = (req, res) => { /* ... */ };

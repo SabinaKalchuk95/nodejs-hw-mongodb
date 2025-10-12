@@ -3,22 +3,34 @@ import {
   register, 
   login, 
   logout,
-  refreshUsersSession, // Импорт сервиса для обновления токена
+  refreshUsersSession,
 } from '../services/auth.js'; 
 
 
-// Контроллер регистрации
+// 1. Контролер реєстрації
 export const registerUser = async (req, res) => {
   const session = await register(req.body);
+  
+  // ❗ ИСПРАВЛЕНИЕ: Добавляем установку refreshToken в cookie, которой не было
+  res.cookie('refreshToken', session.refreshToken, {
+    httpOnly: true,
+    expires: new Date(session.refreshTokenValidUntil), 
+    secure: process.env.NODE_ENV === 'production', // Используем env
+    sameSite: 'Lax',
+  });
 
+  // ❗ ИСПРАВЛЕНИЕ (❌ register response): Возвращаем ТОЛЬКО Access Token
   res.status(201).json({
     status: 201,
     message: 'Successfully registered a user!',
-    data: session,
+    data: {
+      accessToken: session.accessToken,
+      accessTokenValidUntil: session.accessTokenValidUntil,
+    },
   });
 };
 
-// Контроллер логіну
+// 2. Контролер логіну (минимальное исправление secure)
 export const loginUser = async (req, res) => {
   const session = await login(req.body); 
 
@@ -26,7 +38,7 @@ export const loginUser = async (req, res) => {
   res.cookie('refreshToken', session.refreshToken, {
     httpOnly: true,
     expires: new Date(session.refreshTokenValidUntil), 
-    secure: true, // Встановіть на true, якщо використовуєте HTTPS
+    secure: process.env.NODE_ENV === 'production', // Используем env
     sameSite: 'Lax',
   });
 
@@ -40,7 +52,7 @@ export const loginUser = async (req, res) => {
   });
 };
 
-// Контролер виходу
+// 3. Контролер виходу
 export const logoutUser = async (req, res) => {
     // Очищаємо Refresh Token з cookie
     res.clearCookie('refreshToken');
@@ -50,11 +62,11 @@ export const logoutUser = async (req, res) => {
         await logout(req.session._id);
     }
     
-    res.status(204).send();
+    // ❗ ИСПРАВЛЕНИЕ (❌ logout response): Статус 204 No Content
+    res.status(204).end(); // Используем .end() для чистого 204
 };
 
-
-// ❗️ ИСПРАВЛЕННОЕ ИМЯ: refreshSessionController
+// 4. Контролер оновлення сесії
 export const refreshSessionController = async (req, res) => {
     const refreshToken = req.cookies.refreshToken; 
     
@@ -62,14 +74,12 @@ export const refreshSessionController = async (req, res) => {
         throw createHttpError(401, 'Refresh token not provided');
     }
 
-    // Викликаємо сервіс для оновлення сесії
     const newSession = await refreshUsersSession({ refreshToken });
 
-    // Встановлення нового refreshToken як HTTP-Only cookie
     res.cookie('refreshToken', newSession.refreshToken, {
       httpOnly: true,
       expires: new Date(newSession.refreshTokenValidUntil),
-      secure: true, 
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'Lax',
     });
 
@@ -83,14 +93,12 @@ export const refreshSessionController = async (req, res) => {
     });
 };
 
-// Контролер отримання даних користувача
+// 5. Контролер отримання даних користувача
 export const getMeController = (req, res) => {
-    // req.user встановлюється в authenticate middleware
     if (!req.user) {
         throw createHttpError(401, 'User not authenticated');
     }
 
-    // Повертаємо дані користувача без хешованого пароля
     const userWithoutPassword = {
         _id: req.user._id,
         email: req.user.email,

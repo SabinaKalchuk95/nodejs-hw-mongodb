@@ -1,7 +1,7 @@
 import express from 'express';
 import pino from 'pino-http';
 import cors from 'cors';
-import cookieParser from 'cookie-parser'; // ❗ ПОТРІБЕН
+import cookieParser from 'cookie-parser'; // ❗ КРИТИЧНОЕ ИСПРАВЛЕНИЕ
 import { getEnv } from './utils/env.js'; 
 import { initMongoConnection } from './db/initMongoConnection.js';
 import { errorHandler } from './middlewares/errorHandler.js';
@@ -16,7 +16,7 @@ export const setupServer = () => {
 
   app.use(express.json());
   app.use(cors());
-  app.use(cookieParser()); // ❗️ ДОДАНО
+  app.use(cookieParser()); // ❗ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Добавлен cookie-parser
 
   app.use(
     pino({
@@ -26,10 +26,10 @@ export const setupServer = () => {
     }),
   );
 
-  // ✅ ФІНАЛЬНЕ ВИПРАВЛЕННЯ: Коректні префікси без '/api'
+  // ❗ ИСПРАВЛЕНИЕ: Добавлены префиксы /auth и /contacts
   app.use('/auth', authRouter); 
   app.use('/contacts', contactsRouter); 
-  
+
   app.use('*', notFoundHandler);
   app.use(errorHandler);
 
