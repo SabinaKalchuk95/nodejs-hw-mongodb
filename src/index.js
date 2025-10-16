@@ -1,13 +1,14 @@
 import express from 'express';
 import pino from 'pino-http';
 import cors from 'cors';
-import cookieParser from 'cookie-parser'; // ❗ КРИТИЧНОЕ ИСПРАВЛЕНИЕ
+import cookieParser from 'cookie-parser';
 import { getEnv } from './utils/env.js'; 
 import { initMongoConnection } from './db/initMongoConnection.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import notFoundHandler from './middlewares/notFoundHandler.js'; 
 import contactsRouter from './routes/contacts.js';
 import authRouter from './routes/auth.js';
+import { ContactsCollection } from './db/models/contacts.js'; // ✅ ДОДАНО: Імпорт колекції для синхронізації індексів
 
 const PORT = getEnv('PORT', '3000');
 
@@ -16,7 +17,7 @@ export const setupServer = () => {
 
   app.use(express.json());
   app.use(cors());
-  app.use(cookieParser()); // ❗ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Добавлен cookie-parser
+  app.use(cookieParser()); 
 
   app.use(
     pino({
@@ -26,7 +27,6 @@ export const setupServer = () => {
     }),
   );
 
-  // ❗ ИСПРАВЛЕНИЕ: Добавлены префиксы /auth и /contacts
   app.use('/auth', authRouter); 
   app.use('/contacts', contactsRouter); 
 
@@ -40,5 +40,7 @@ export const setupServer = () => {
 
 (async () => {
   await initMongoConnection();
+  
+ 
   setupServer();
 })();

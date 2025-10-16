@@ -27,7 +27,7 @@ const authenticate = async (req, res, next) => {
     return next(createHttpError(401, 'Invalid token.'));
   }
 
-  const userId = payload.userId; // Вважаємо, що в пейлоаді є 'userId'
+  const userId = payload.userId; 
 
   // Пошук сесії, що відповідає цьому користувачу ТА токену
   const session = await SessionsCollection.findOne({
@@ -36,20 +36,19 @@ const authenticate = async (req, res, next) => {
   });
 
   if (!session) {
-    return next(createHttpError(401, 'Session not found or expired.'));
+    return next(createHttpError(401, 'Session not found.'));
   }
   
-  // Знаходимо користувача
   const user = await UsersCollection.findById(userId);
 
   if (!user) {
     return next(createHttpError(401, 'User not found.'));
   }
 
-  // Додаємо дані до req для подальшого використання
-  req.user = user;
+  // ✅ КРИТИЧНОЕ ДЕЙСТВИЕ: Сохраняем user и session в req
+  req.user = user; 
   req.session = session;
-  
+
   next();
 };
 

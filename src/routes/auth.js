@@ -1,3 +1,4 @@
+// src/routes/auth.js
 import { Router } from 'express';
 import { ctrlWrapper } from '../middlewares/ctrlWrapper.js';
 import { 
@@ -14,13 +15,16 @@ import authenticate from '../middlewares/authenticate.js';
 
 const router = Router();
 
-// ❗ ИСПРАВЛЕННЫЕ ПУБЛИЧНЫЕ РОУТЫ: Добавляем сюда logout!
+// ПУБЛИЧНЫЕ РОУТЫ:
 router.post('/register', validateBody(registerSchema), ctrlWrapper(registerUser));
 router.post('/login', validateBody(loginSchema), ctrlWrapper(loginUser));
 router.post('/refresh', ctrlWrapper(refreshSessionController)); 
-router.post('/logout', ctrlWrapper(logoutUser)); // ❗ ИСПРАВЛЕНО: УБРАН authenticate
 
-// ЗАЩИЩЕННЫЕ РОУТЫ: (Остается только getMe)
+// ✅ ИСПРАВЛЕНО: logout должен быть публичным, чтобы очистить куки (а сессия удаляется через ID в контроллере)
+router.post('/logout', ctrlWrapper(logoutUser)); 
+
+// ЗАЩИЩЕННЫЕ РОУТЫ:
+// ✅ ИСПРАВЛЕНО: Для getMe нужен authenticate (токен)
 router.get('/me', authenticate, ctrlWrapper(getMeController)); 
 
 export default router;

@@ -7,6 +7,7 @@ import { parseFilterParams } from '../utils/parseFilterParams.js';
 
 // Контролер для отримання всіх контактів поточного користувача з пагінацією/сортуванням/фільтрацією
 export const getContactsController = async (req, res) => {
+  // ✅ КРИТИЧНОЕ ИСПРАВЛЕНИЕ: Получаем ID пользователя из req.user (установлен в authenticate)
   const userId = req.user._id;
 
   // 1. Парсинг параметрів
@@ -14,7 +15,7 @@ export const getContactsController = async (req, res) => {
   const { sortOrder, sortBy } = parseSortParams(req.query);
   const filter = parseFilterParams(req.query);
   
-  // 2. Отримання контактів та загальної кількості
+  // 2. Получение контактов и общего количества (передаем userId)
   const contacts = await contactsService.getAllContacts(userId, {
     page,
     perPage,
@@ -34,23 +35,67 @@ export const getContactsController = async (req, res) => {
   });
 };
 
-// ❗ ИСПРАВЛЕНИЕ ЗАВИСАНИЯ (❌ POST /contacts hangs): Контроллер создания контакта
+// Контролер для створення контакту
 export const createContactController = async (req, res) => {
-  // Получаем ID пользователя из req.user (устанавливается authenticate)
-  const userId = req.user._id; 
-  
-  // Вызываем сервис для создания контакта (предполагая, что сервис contactsService.createContact существует)
-  const newContact = await contactsService.createContact(userId, req.body); 
+    // ✅ КРИТИЧНОЕ ИСПРАВЛЕНИЕ: Получаем ID владельца из req.user
+    const userId = req.user._id; 
+    
+    // Передаем userId в сервис
+    const contact = await contactsService.createContact(userId, req.body); 
 
-  // ✅ Завершение запроса, чтобы он не зависал
-  res.status(201).json({
-    status: 201,
-    message: 'Successfully created contact',
-    data: newContact,
-  });
+    res.status(201).json({
+        status: 201,
+        message: 'Successfully created contact',
+        data: contact,
+    });
 };
 
-// ... (остальной код, который вы обозначили /* ... */)
-export const getContactByIdController = async (req, res) => { /* ... */ };
-export const patchContactController = async (req, res) => { /* ... */ };
-export const deleteContactController = async (req, res) => { /* ... */ };
+// Контролер для отримання контакту за ID
+export const getContactByIdController = async (req, res) => {
+    const { contactId } = req.params;
+    const userId = req.user._id; // Получаем ID владельца
+
+    const contact = await contactsService.getContactById(contactId, userId); // Передаем userId
+
+    if (!contact) {
+        throw createHttpError(404, 'Contact not found');
+    }
+
+    res.status(200).json({
+        status: 200,
+        message: `Successfully found contact with id ${contactId}`,
+        data: contact,
+    });
+};
+
+// Контролер для оновлення контакту
+export const patchContactController = async (req, res) => {
+    const { contactId } = req.params;
+    const userId = req.user._id; // Получаем ID владельца
+
+    const result = await contactsService.updateContact(contactId, userId, req.body); // Передаем userId
+
+    if (!result) {
+        throw createHttpError(404, 'Contact not found');
+    }
+
+    res.status(200).json({
+        status: 200,
+        message: 'Successfully updated contact!',
+        data: result,
+    });
+};
+
+// Контролер для видалення контакту
+export const deleteContactController = async (req, res) => {
+    const { contactId } = req.params;
+    const userId = req.user._id; // Получаем ID владельца
+
+    const result = await contactsService.deleteContact(contactId, userId); // Передаем userId
+
+    if (!result) {
+        throw createHttpError(404, 'Contact not found');
+    }
+
+    res.status(204).end(); 
+};
