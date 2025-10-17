@@ -8,15 +8,12 @@ import {
   deleteContactController,
 } from '../controllers/contacts.js'; 
 import { ctrlWrapper } from '../middlewares/ctrlWrapper.js';
-import authenticate from '../middlewares/authenticate.js'; // Импорт защиты
-import { validateBody } from '../middlewares/validateBody.js';
-import { createContactSchema, updateContactSchema } from '../schemas/contacts.js';
-import { isValidId } from '../middlewares/isValidId.js'; 
+import authenticate from '../middlewares/authenticate.js';
+
+// защищаем все роуты контактов
+router.use(authenticate);
 
 const router = express.Router();
-
-// ✅ КРИТИЧНОЕ ИСПРАВЛЕНИЕ: Применяем аутентификацию ко ВСЕМ роутам контактов
-router.use(authenticate);
 
 // 1. Отримати всі контакти (з пагінацією/сортуванням)
 router.get('/', ctrlWrapper(getContactsController));

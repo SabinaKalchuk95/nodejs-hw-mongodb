@@ -1,32 +1,12 @@
-import { Schema, model } from 'mongoose';
-import bcrypt from 'bcrypt';
+import { model, Schema } from 'mongoose';
 
 const userSchema = new Schema(
   {
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-    },
-    password: {
-      type: String,
-      required: true,
-    },
-    name: {
-      type: String,
-    },
+    name: { type: String, required: true },
+    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    password: { type: String, required: true },
   },
-  {
-    timestamps: true,
-    versionKey: false,
-  },
+  { timestamps: true, versionKey: false },
 );
 
-// Метод для порівняння паролів (використовується в loginUser)
-userSchema.methods.checkPassword = function (password) {
-  return bcrypt.compare(password, this.password);
-};
-
-// Експортуємо з правильною назвою
-export const UsersCollection = model('User', userSchema); 
+export const User = model('users', userSchema);

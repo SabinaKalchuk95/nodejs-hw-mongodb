@@ -2,13 +2,12 @@ import express from 'express';
 import pino from 'pino-http';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import authRouter from './routers/auth.js';
+import contactsRouter from './routes/contacts.js';
 import { getEnv } from './utils/env.js'; 
 import { initMongoConnection } from './db/initMongoConnection.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import notFoundHandler from './middlewares/notFoundHandler.js'; 
-import contactsRouter from './routes/contacts.js';
-import authRouter from './routes/auth.js';
-import { ContactsCollection } from './db/models/contacts.js'; // ✅ ДОДАНО: Імпорт колекції для синхронізації індексів
 
 const PORT = getEnv('PORT', '3000');
 

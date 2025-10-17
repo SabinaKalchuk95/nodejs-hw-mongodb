@@ -1,5 +1,5 @@
 // src/controllers/contacts.js
-import * as contactsService from '../services/contacts.js';
+import contactsService from '../services/contacts.js';
 import createHttpError from 'http-errors';
 import { parsePaginationParams, calculatePaginationData } from '../utils/parsePaginationParams.js';
 import { parseSortParams } from '../utils/parseSortParams.js';
@@ -99,3 +99,52 @@ export const deleteContactController = async (req, res) => {
 
     res.status(204).end(); 
 };
+
+import contactsService from '../services/contacts.js';
+
+const list = async (req, res, next) => {
+  try {
+    const contacts = await contactsService.listContacts(req.user._id, req.query);
+    res.json({ status: 200, message: 'OK', data: contacts });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const getById = async (req, res, next) => {
+  try {
+    const contact = await contactsService.getContactById(req.user._id, req.params.id);
+    res.json({ status: 200, message: 'OK', data: contact });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const create = async (req, res, next) => {
+  try {
+    const created = await contactsService.createContact(req.user._id, req.body);
+    res.status(201).json({ status: 201, message: 'Contact created', data: created });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const remove = async (req, res, next) => {
+  try {
+    await contactsService.removeContact(req.user._id, req.params.id);
+    res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+};
+
+const update = async (req, res, next) => {
+  try {
+    const updated = await contactsService.updateContact(req.user._id, req.params.id, req.body);
+    res.json({ status: 200, message: 'Contact updated', data: updated });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export default { list, getById, create, remove, update };

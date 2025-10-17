@@ -1,64 +1,53 @@
+import createHttpError from 'http-errors';
 import { ContactsCollection } from '../db/models/contacts.js';
 
-// Допоміжна функція для побудови фільтра
 const getFilter = (userId, filter) => {
-    // ✅ ФІКС: Використовуємо 'userId' для пошуку (відповідає моделі)
-    const contactFilter = { userId: userId }; 
-    
-    if (filter) {
-        if (filter.contactType) {
-            contactFilter.contactType = filter.contactType;
-        }
-        if (filter.isFavorite !== undefined) { 
-            contactFilter.isFavorite = filter.isFavorite;
-        }
-    }
-    return contactFilter;
+  const contactFilter = { userId };
+  if (!filter) return contactFilter;
+  if (filter.contactType) contactFilter.contactType = filter.contactType;
+  const fav = filter.isFavorite !== undefined ? filter.isFavorite : filter.isFavourite;
+  if (fav !== undefined) contactFilter.isFavorite = fav;
+  return contactFilter;
 };
 
-export const getAllContacts = async (userId, { page = 1, perPage = 10, sortOrder = 'asc', sortBy = 'name', filter = {} }) => {
-  const contactFilter = getFilter(userId, filter);
-
-  const skip = (page - 1) * perPage;
-  
-  const contacts = await ContactsCollection.find(contactFilter)
-    .skip(skip)
-    .limit(perPage)
-    .sort({ [sortBy]: sortOrder === 'asc' ? 1 : -1 }); 
-    
+const listContacts = async (userId, query = {}) => {
+  const filter = getFilter(userId, query);
+  const contacts = await ContactsCollection.find(filter).lean();
   return contacts;
 };
 
-export const countAllContacts = async (userId, filter = {}) => {
-  const contactFilter = getFilter(userId, filter);
-  return await ContactsCollection.countDocuments(contactFilter);
+const getContactById = async (userId, contactId) => {
+  const contact = await ContactsCollection.findOne({ _id: contactId, userId });
+  if (!contact) throw createHttpError(404, 'Not found');
+  return contact;
 };
 
-export const createContact = async (userId, payload) => { 
-  const newContact = await ContactsCollection.create({
-    ...payload,
-    // 🔥 ФІНАЛЬНЕ ВИПРАВЛЕННЯ: Поле для Mongoose має бути 'userId'
-    userId: userId, 
-  });
-  return newContact;
+const createContact = async (userId, contactData) => {
+  const data = { ...contactData, userId };
+  const created = await ContactsCollection.create(data);
+  return created;
 };
 
-
-export const getContactById = async (contactId, userId) => {
-    // Шукаємо за _id та userId
-    return ContactsCollection.findOne({ _id: contactId, userId: userId });
+const removeContact = async (userId, contactId) => {
+  const result = await ContactsCollection.findOneAndDelete({ _id: contactId, userId });
+  if (!result) throw createHttpError(404, 'Not found');
+  return result;
 };
 
-export const updateContact = async (contactId, userId, payload) => {
-    return ContactsCollection.findOneAndUpdate(
-        // Шукаємо за _id та userId
-        { _id: contactId, userId: userId },
-        payload,
-        { new: true },
-    );
+const updateContact = async (userId, contactId, body) => {
+  const updated = await ContactsCollection.findOneAndUpdate(
+    { _id: contactId, userId },
+    body,
+    { new: true },
+  );
+  if (!updated) throw createHttpError(404, 'Not found');
+  return updated;
 };
 
-export const deleteContact = async (contactId, userId) => {
-    // Шукаємо за _id та userId
-    return ContactsCollection.findOneAndDelete({ _id: contactId, userId: userId });
+export default {
+  listContacts,
+  getContactById,
+  createContact,
+  removeContact,
+  updateContact,
 };

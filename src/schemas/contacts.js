@@ -15,3 +15,16 @@ export const updateContactSchema = Joi.object({
   isFavorite: Joi.boolean(),
   contactType: Joi.string().valid('work', 'home', 'personal'),
 });
+
+export const register = Joi.object({
+  name: Joi.string().required(),
+  email: Joi.string().email().required(),
+  password: Joi.string().required(),
+});
+
+export const login = Joi.object({
+  email: Joi.string().email().required(),
+  password: Joi.string().required(),
+});
+
+export default { register, login };

@@ -1,19 +1,16 @@
-import { UsersCollection } from '../db/models/user.js';
-import { SessionsCollection } from '../db/models/session.js';
 import bcrypt from 'bcrypt';
-import createHttpError from 'http-errors';
 import jwt from 'jsonwebtoken';
-// ⚠️ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Используем getEnv() для доступа к переменным окружения
-import { getEnv } from '../utils/env.js'; 
+import createHttpError from 'http-errors';
+import { User } from '../db/models/user.js';
+import { Session } from '../db/models/session.js';
 
+const JWT_SECRET = process.env.JWT_SECRET || 'secret';
+const ACCESS_EXPIRES = '15m';
+const REFRESH_EXPIRES = '30d';
 
 // --- 1. Вспомогательная функция для создания токенов ---
 const createSession = (userId) => {
   const payload = { userId }; 
-  
-  // Получаем секреты через getEnv() для надежности
-  const JWT_SECRET = getEnv('JWT_SECRET'); 
-  const REFRESH_SECRET = getEnv('REFRESH_SECRET');
 
   // 1. Access Token (короткоживущий)
   const accessToken = jwt.sign(payload, JWT_SECRET, {
@@ -21,19 +18,19 @@ const createSession = (userId) => {
   });
   
   // 2. Refresh Token (долгоживущий)
-  const refreshToken = jwt.sign(payload, REFRESH_SECRET, {
-    expiresIn: '7d', 
+  const refreshToken = jwt.sign(payload, JWT_SECRET, {
+    expiresIn: '30d', 
   });
 
   // Обчислення термінів дії
-  const sevenDays = 7 * 24 * 60 * 60 * 1000;
+  const thirtyDays = 30 * 24 * 60 * 60 * 1000;
   const fifteenMinutes = 15 * 60 * 1000;
   
   return { 
     accessToken, 
     refreshToken,
     accessTokenValidUntil: new Date(Date.now() + fifteenMinutes),
-    refreshTokenValidUntil: new Date(Date.now() + sevenDays), 
+    refreshTokenValidUntil: new Date(Date.now() + thirtyDays), 
   };
 };
 
@@ -42,9 +39,9 @@ const saveSession = async (userId) => {
   const tokens = createSession(userId);
 
   // Для чистоты (опционально, можно убрать после отладки), удаляем старые сессии для этого пользователя
-  await SessionsCollection.deleteOne({ userId });
+  await Session.deleteMany({ userId });
 
-  const session = await SessionsCollection.create({
+  const session = await Session.create({
     userId,
     accessToken: tokens.accessToken,
     refreshToken: tokens.refreshToken,
@@ -64,7 +61,7 @@ const saveSession = async (userId) => {
 // ------------------------------------------------------------------
 // --- 3. Сервис регистрации ---
 export const register = async (payload) => {
-  const userExists = await UsersCollection.findOne({ email: payload.email });
+  const userExists = await User.findOne({ email: payload.email });
 
   if (userExists) {
     throw createHttpError(409, 'Email already in use');
@@ -73,7 +70,7 @@ export const register = async (payload) => {
   // Хешируем пароль
   const hashedPassword = await bcrypt.hash(payload.password, 10);
 
-  const user = await UsersCollection.create({
+  const user = await User.create({
     ...payload,
     password: hashedPassword,
   });
@@ -85,7 +82,7 @@ export const register = async (payload) => {
 // ------------------------------------------------------------------
 // --- 4. Сервис логина ---
 export const login = async (payload) => {
-  const user = await UsersCollection.findOne({ email: payload.email });
+  const user = await User.findOne({ email: payload.email });
 
   if (!user) {
     throw createHttpError(401, 'Email or password is not valid');
@@ -104,7 +101,7 @@ export const login = async (payload) => {
 // ------------------------------------------------------------------
 // --- 5. Сервис логаута ---
 export const logout = async (sessionId) => {
-  await SessionsCollection.deleteOne({ _id: sessionId });
+  await Session.findOneAndDelete({ _id: sessionId });
 };
 
 // ------------------------------------------------------------------
@@ -114,8 +111,7 @@ export const refreshUsersSession = async ({ refreshToken }) => {
 
     // 1. Верификация Refresh Token
     try {
-        const REFRESH_SECRET = getEnv('REFRESH_SECRET'); // Получаем секрет здесь
-        payload = jwt.verify(refreshToken, REFRESH_SECRET);
+        payload = jwt.verify(refreshToken, JWT_SECRET);
     } catch (err) {
         throw createHttpError(401, 'Refresh token is invalid or expired');
     }
@@ -123,7 +119,7 @@ export const refreshUsersSession = async ({ refreshToken }) => {
     const userId = payload.userId; 
 
     // 2. Поиск текущей сессии по токену и userId
-    const session = await SessionsCollection.findOne({
+    const session = await Session.findOne({
         userId,
         refreshToken,
     });
@@ -135,7 +131,7 @@ export const refreshUsersSession = async ({ refreshToken }) => {
     // 3. Проверка срока действия Refresh Token
     // Если просрочен, удаляем старую сессию и выбрасываем ошибку
     if (new Date() > session.refreshTokenValidUntil) {
-        await SessionsCollection.deleteOne({ _id: session._id });
+        await Session.deleteOne({ _id: session._id });
         throw createHttpError(401, 'Session expired');
     }
 
@@ -143,7 +139,7 @@ export const refreshUsersSession = async ({ refreshToken }) => {
     const newSession = await saveSession(userId);
     
     // Удаляем старую сессию, чтобы предотвратить ее повторное использование
-    await SessionsCollection.deleteOne({ _id: session._id });
+    await Session.deleteOne({ _id: session._id });
 
     return newSession;
 };
